@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function App() {
   const [form, setForm] = useState({
@@ -10,6 +10,14 @@ function App() {
   });
 
   const [resultado, setResultado] = useState(null);
+  const [niveisAtividade, setNiveisAtividade] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5096/api/niveis-atividade")
+      .then((res) => res.json())
+      .then((data) => setNiveisAtividade(data))
+      .catch((err) => console.error("Erro ao buscar níveis de atividade", err));
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -18,11 +26,31 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const { idade, peso, altura, sexo, nivelDeAtividade } = form;
+
+    if (!idade || !peso || !altura || !sexo || !nivelDeAtividade) {
+      alert("Preencha todos os campos corretamente!");
+      return;
+    }
+
+    if (idade <= 0 || peso <= 0 || altura <= 0) {
+      alert("Idade, peso e altura devem ser maiores que zero.");
+      return;
+    }
+
+    const payload = {
+      idade: parseInt(form.idade),
+      peso: parseFloat(form.peso),
+      altura: parseFloat(form.altura),
+      sexo: form.sexo,
+      nivelDeAtividade: parseInt(form.nivelDeAtividade),
+    };
+
     try {
-      const res = await fetch("https://localhost:7294/api/tmb/calcular", {
+      const res = await fetch("http://localhost:5096/api/tmb/calcular", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error("Erro ao calcular");
@@ -51,6 +79,8 @@ function App() {
             value={form.idade}
             onChange={handleChange}
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+            min="1"
+            max="120"
             required
           />
         </div>
@@ -63,6 +93,8 @@ function App() {
             value={form.peso}
             onChange={handleChange}
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+            min="1"
+            max="500"
             required
           />
         </div>
@@ -75,6 +107,8 @@ function App() {
             value={form.altura}
             onChange={handleChange}
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
+            min="50"
+            max="250"
             required
           />
         </div>
@@ -99,16 +133,18 @@ function App() {
           <select
             name="nivelDeAtividade"
             value={form.nivelDeAtividade}
-            onChange={handleChange}
+            onChange={(e) =>
+              setForm({ ...form, nivelDeAtividade: parseInt(e.target.value) })
+            }
             className="w-full px-3 py-2 rounded bg-gray-700 text-white"
             required
           >
             <option value="">Selecione</option>
-            <option value="sedentario">Sedentário</option>
-            <option value="leve">Leve</option>
-            <option value="moderado">Moderado</option>
-            <option value="ativo">Ativo</option>
-            <option value="muito_ativo">Muito ativo</option>
+            {niveisAtividade.map((nivel, index) => (
+              <option key={index} value={nivel.valor}>
+                {nivel.nome}
+              </option>
+            ))}
           </select>
         </div>
 
